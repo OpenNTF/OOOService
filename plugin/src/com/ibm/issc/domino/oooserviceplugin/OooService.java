@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.util.Date;
 import java.util.Vector;
 
 import javax.ws.rs.Path;
@@ -68,8 +69,6 @@ public class OooService {
         Document doc = null;
 
         final ResponseBuilder rb = Response.ok();
-        final StringBuffer result = new StringBuffer();
-        result.append("{");
 
         NotesThread.sinitThread();
         try {
@@ -94,24 +93,19 @@ public class OooService {
             }
 
             boolean OOenabled = db.getOption(Database.DBOPT_OUTOFOFFICEENABLED);
-            result.append("\"OOOEnabled\" : ");
-            result.append(OOenabled);
+            OooStatus ooStatus = new OooStatus(username, OOenabled);
 
             // Retrieve the message only if it is active
             if (OOenabled) {
+                // TODO: Better error handling
                 doc = db.getProfileDocument("outofofficeprofile", null);
-
-                // TODO: Render the message here
-                doc.getItemValue("dateFirstDayOut");
-                doc.getItemValue("dateFirstDayOut");
-                doc.getItemValueString("daysoutdisplay");
-                doc.getItemValueString("generalmessage");
-
+                if (doc != null) {
+                    this.retrieveOOOParameters(doc, ooStatus);
+                }
             }
 
-            result.append("}");
             rb.status(200);
-            rb.entity(result.toString()).type(MediaType.APPLICATION_JSON + "; charset=utf-8");
+            rb.entity(ooStatus.toString()).type(MediaType.APPLICATION_JSON + "; charset=utf-8");
 
         } catch (NotesException e) {
             // TODO Fix error logging
@@ -123,6 +117,33 @@ public class OooService {
         NotesThread.stermThread();
 
         return rb.build();
+    }
+
+    /**
+     * @param doc
+     * @param ooStatus
+     */
+    @SuppressWarnings("rawtypes")
+    private void retrieveOOOParameters(Document doc, OooStatus ooStatus) {
+
+        try {
+            doc.setPreferJavaDates(true);
+            Vector firstDayOutVector = doc.getItemValue("dateFirstDayOut");
+            if ((firstDayOutVector != null) && !firstDayOutVector.isEmpty()) {
+                Date fdoTime = (Date) firstDayOutVector.get(0);
+                ooStatus.setFirstDayOut(fdoTime);
+            }
+            Vector firstDayBackVector = doc.getItemValue("dateFirstDayBack");
+            if ((firstDayBackVector != null) && !firstDayBackVector.isEmpty()) {
+                Date fdb = (Date) firstDayBackVector.get(0);
+                ooStatus.setFirstDayBack(fdb);
+            }
+            ooStatus.setSubject(doc.getItemValueString("daysoutdisplay"));
+            ooStatus.setBody(doc.getItemValueString("generalmessage"));
+
+        } catch (Exception e) {
+            // We ignore it here
+        }
     }
 
     /**
