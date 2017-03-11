@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.ibm.issc.domino.OOOServiceFeature"
+      label="OOOServiceFeature"
+      version="1.0.0.qualifier"
+      provider-name="IBM">
+
+   <description url="http://www.ibm.com">
+      Makes Out-of-Office Status available as REST service
+   </description>
+
+   <copyright url="http://www.ibm.com/copyright">
+      (C) 2017 IBM All rights reserved
+   </copyright>
+
+   <license url="http://www.ibm.com/license">
+      Use on your own risk
+   </license>
+
+   <plugin
+         id="com.ibm.issc.domino.OOOServicePlugin"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+</feature>
