@@ -8,7 +8,7 @@
  * ========================================================================== *
  * com.ibm.verse.domino.servlet com.ibm.verse.domino.servlet WinkServlet.java
  */
-package com.ibm.issc.domino.oooserviceplugin;
+package com.ibm.issc.domino.oooservice;
 
 import com.ibm.domino.services.AbstractRestServlet;
 

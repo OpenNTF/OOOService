@@ -7,7 +7,7 @@
  * @version     1.0                                                           *
  * ========================================================================== *
  */
-package com.ibm.issc.domino.oooserviceplugin;
+package com.ibm.issc.domino.oooservice;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;

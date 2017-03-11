@@ -6,9 +6,9 @@
  *                                       @notessensei                         *
  * @version     1.0                                                           *
  * ========================================================================== *
- * com.ibm.issc.domino.OOOServicePlugin com.ibm.issc.domino.oooserviceplugin Utils.java
+ * com.ibm.issc.domino.OOOServicePlugin com.ibm.issc.domino.oooservice Utils.java
  */
-package com.ibm.issc.domino.oooserviceplugin;
+package com.ibm.issc.domino.oooservice;
 
 import java.util.Collection;
 

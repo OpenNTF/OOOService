@@ -6,9 +6,9 @@
  *                                       @notessensei                         *
  * @version     1.0                                                           *
  * ========================================================================== *
- * com.ibm.issc.domino.OOOServicePlugin com.ibm.issc.domino.oooserviceplugin OooService.java
+ * com.ibm.issc.domino.OOOServicePlugin com.ibm.issc.domino.oooservice OooService.java
  */
-package com.ibm.issc.domino.oooserviceplugin;
+package com.ibm.issc.domino.oooservice;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -18,6 +18,7 @@ import java.io.Writer;
 import java.util.Date;
 import java.util.Vector;
 
+import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -47,6 +48,7 @@ import org.apache.wink.common.annotations.Workspace;
 public class OooService {
     /* Created: 11 Mar, 2017 */
 
+    @GET
     public Response getOOOStatus(@PathParam("user") String user) {
         Response response = null;
         try {

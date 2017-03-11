@@ -6,9 +6,9 @@
  *                                       @notessensei                         *
  * @version     1.0                                                           *
  * ========================================================================== *
- * com.ibm.issc.domino.OOOServicePlugin com.ibm.issc.domino.oooserviceplugin OooStatus.java
+ * com.ibm.issc.domino.OOOServicePlugin com.ibm.issc.domino.oooservice OooStatus.java
  */
-package com.ibm.issc.domino.oooserviceplugin;
+package com.ibm.issc.domino.oooservice;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
