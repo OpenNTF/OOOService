@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: OOOServicePlugin
+Bundle-SymbolicName: com.ibm.issc.domino.OOOServicePlugin;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: com.ibm.issc.domino.oooserviceplugin.Activator
+Bundle-Vendor: IBM
+Require-Bundle: org.eclipse.core.runtime,
+ com.ibm.wink;bundle-version="9.0.1"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Import-Package: com.ibm.domino.osgi.core.context,
+ javax.servlet,
+ javax.servlet.http,
+ lotus.domino,
+ org.osgi.framework;version="1.3.0"
+Bundle-ActivationPolicy: lazy
+Export-Package: com.ibm.issc.domino.oooserviceplugin

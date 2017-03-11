@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.equinox.http.registry.servlets">
+      <servlet
+            alias="/oooservice"
+            class="com.ibm.issc.domino.oooservice.WinkServlet"
+            load-on-startup="true">
+            <init-param name="applicationConfigLocation" value="/WEB-INF/oooservice"/>
+            <init-param name="propertiesLocation" value="/WEB-INF/oooservice.properties"/>
+            
+      </servlet> 
+    </extension>
+</plugin>
