@@ -28,15 +28,15 @@ public class OooStatus {
     // JSON/JavaScript compatible date format
     private final SimpleDateFormat sdf          = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     private final String           user;
-    private final boolean          enabled;
+    private boolean                enabled      = false;
     private String                 firstDayOut  = null;
     private String                 firstDayBack = null;
     private String                 subject      = null;
     private String                 body         = null;
+    private String                 error        = null;
 
-    public OooStatus(final String user, final boolean enabled) {
+    public OooStatus(final String user) {
         this.user = user;
-        this.enabled = enabled;
     }
 
     /**
@@ -45,6 +45,22 @@ public class OooStatus {
      */
     public void setBody(final String body) {
         this.body = body;
+    }
+
+    /**
+     * @param enabled
+     *            the enabled to set
+     */
+    public void setEnabled(final boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    /**
+     * @param errorMsg
+     */
+    public void setError(final String errorMsg) {
+        this.error = errorMsg;
+
     }
 
     /**
@@ -90,6 +106,9 @@ public class OooStatus {
             json.beginObject();
             json.name("user").value(this.user);
             json.name("enabled").value(this.enabled);
+            if (this.error != null) {
+                json.name("error").value(this.error);
+            }
             if (this.enabled) {
                 json.name("out").value(this.firstDayOut);
                 json.name("in").value(this.firstDayBack);
