@@ -17,6 +17,7 @@ import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.Date;
 import java.util.Vector;
+import java.util.logging.Logger;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -42,11 +43,13 @@ import org.apache.wink.common.annotations.Workspace;
  *
  * @author stw
  */
-@Workspace(workspaceTitle = "OOO QUery", collectionTitle = "Retrieves the common Out Of Office Status")
+@Workspace(workspaceTitle = "OOO Query", collectionTitle = "Retrieves the common Out Of Office Status")
 @Path(value = "{user}")
 @Produces(MediaType.APPLICATION_JSON)
 public class OooService {
     /* Created: 11 Mar, 2017 */
+
+    private final Logger logger = Activator.getLogger(this.getClass().getName());
 
     @GET
     public Response getOOOStatus(@PathParam("user") String user) {
@@ -54,6 +57,7 @@ public class OooService {
         try {
             response = this.retrieveOOO(user);
         } catch (final Exception e) {
+            Utils.logError(this.logger, e);
             response = this.getErrorResponse(e);
         }
         return response;
@@ -77,8 +81,8 @@ public class OooService {
             session = NotesFactory.createSession();
             registration = session.createRegistration();
             // A server plugin has the server as userName in its session
-            // TODO: could be omitted?
-            registration.setRegistrationServer(session.getUserName());
+            // TODO: needs inclusion?
+            // registration.setRegistrationServer(session.getUserName());
 
             StringBuffer mailserver = new StringBuffer();
             StringBuffer mailfile = new StringBuffer();
@@ -110,8 +114,8 @@ public class OooService {
             rb.entity(ooStatus.toString()).type(MediaType.APPLICATION_JSON + "; charset=utf-8");
 
         } catch (NotesException e) {
-            // TODO Fix error logging
-            e.printStackTrace();
+            // TODO Add proper error feedback to client
+            Utils.logError(this.logger, e);
         }
 
         Utils.shred(doc, db, registration, session);
@@ -144,7 +148,7 @@ public class OooService {
             ooStatus.setBody(doc.getItemValueString("generalmessage"));
 
         } catch (Exception e) {
-            // We ignore it here
+            Utils.logError(this.logger, e);
         }
     }
 
@@ -190,8 +194,8 @@ public class OooService {
             w.write("\"EndofTrace\"\n]\n}");
             w.close();
         } catch (final IOException ex) {
-            // TODO: FIX Error handling
-            ex.printStackTrace();
+            // TODO: FIX Error reporting to client
+            Utils.logError(this.logger, e);
         }
 
         rb.status(status).type(MediaType.APPLICATION_JSON).entity(out.toString());
