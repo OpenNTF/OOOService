@@ -40,6 +40,8 @@ import org.apache.wink.common.annotations.Workspace;
 
 import com.google.common.base.Charsets;
 import com.google.gson.stream.JsonWriter;
+import com.jamonapi.Monitor;
+import com.jamonapi.MonitorFactory;
 
 /**
  * Allows to query the OOOService of a provided
@@ -48,7 +50,7 @@ import com.google.gson.stream.JsonWriter;
  * @author stw
  */
 @Workspace(workspaceTitle = "OOO Query", collectionTitle = "Retrieves the common Out Of Office Status")
-@Path(value = "{user}")
+@Path(value = "/q/{user}")
 @Produces(MediaType.APPLICATION_JSON)
 public class OooService {
     /* Created: 11 Mar, 2017 */
@@ -68,12 +70,14 @@ public class OooService {
     @GET
     public Response getOOOStatus(@PathParam("user") final String user, @QueryParam("force") final boolean force) {
         Response response = null;
+        final Monitor mon = MonitorFactory.start("OooService#getOOOStatus");
         try {
             response = this.retrieveOOO(user, force);
         } catch (final Exception e) {
             Utils.logError(this.logger, e);
             response = this.getErrorResponse(e);
         }
+        mon.stop();
         return response;
     }
 
@@ -132,9 +136,12 @@ public class OooService {
      * @return Response with status and explanation
      */
     private Response getErrorResponse(final Exception e) {
+        final Monitor mon = MonitorFactory.start("OooService#getErrorResponse");
         final ResponseBuilder rb = Response.serverError();
         this.errorResult(rb, e);
-        return rb.build();
+        final Response response = rb.build();
+        mon.stop();
+        return response;
     }
 
     /**
@@ -147,12 +154,15 @@ public class OooService {
      * @return JSON structure
      */
     private Response retrieveOOO(final String username, final boolean force) {
-
+        final Monitor mon = MonitorFactory.start("OooService#retrieveOOO");
+        Monitor monRegistration = null;
+        Monitor monDBOpen = null;
         Database db = null;
         Session session = null;
         Registration registration = null;
         Document doc = null;
         Response response = null;
+
         final ResponseBuilder rb = Response.ok();
 
         // The OOO Status we return back - can have an error property
@@ -172,23 +182,25 @@ public class OooService {
             final StringBuffer mailsystem = new StringBuffer();
             @SuppressWarnings("rawtypes")
             final Vector profile = new Vector();
+            monRegistration = MonitorFactory.start("OooService#retrieveOOO#retrieveRegistration");
             registration.getUserInfo(username, mailserver, mailfile, maildomain, mailsystem, profile);
+            monRegistration.stop();
 
             // Opening might fail depending on server trust and access control
             // However Domino will usually return a "dead" db object anyway
             boolean successfullDBOpen = true;
-
+            monDBOpen = MonitorFactory.start("OooService#retrieveOOO#OpenDB");
             try {
                 db = session.getDatabase(mailserver.toString(), mailfile.toString());
 
                 if (!db.isOpen()) {
                     db.open();
                 }
-            } catch (NotesException dbFail) {
+            } catch (final NotesException dbFail) {
                 successfullDBOpen = false;
                 ooStatus.setError(dbFail.text);
             }
-
+            monDBOpen.stop();
             if (successfullDBOpen) {
                 final boolean OOenabled = db.getOption(Database.DBOPT_OUTOFOFFICEENABLED);
                 ooStatus.setEnabled(OOenabled);
@@ -202,7 +214,7 @@ public class OooService {
                         } else {
                             ooStatus.setError("User didn't provide Out-of-Office information");
                         }
-                    } catch (NotesException profileFail) {
+                    } catch (final NotesException profileFail) {
                         ooStatus.setError(profileFail.text);
                     }
                 }
@@ -219,8 +231,15 @@ public class OooService {
 
         Utils.shred(doc, db, registration, session);
 
+        // Ensure all monitors are down
         NotesThread.stermThread();
-
+        if (monDBOpen != null) {
+            monDBOpen.stop();
+        }
+        if (monRegistration != null) {
+            monRegistration.stop();
+        }
+        mon.stop();
         return response;
     }
 
@@ -234,6 +253,7 @@ public class OooService {
             ooStatus.setError("OOO Profile document missing");
             return;
         }
+        final Monitor mon = MonitorFactory.start("OooService#retrieveOOOParameters");
         try {
             doc.setPreferJavaDates(true);
             final Vector firstDayOutVector = doc.getItemValue("dateFirstDayOut");
@@ -257,5 +277,7 @@ public class OooService {
                 ooStatus.setError(e.getMessage());
             }
         }
+
+        mon.stop();
     }
 }
