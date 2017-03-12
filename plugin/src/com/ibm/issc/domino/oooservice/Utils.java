@@ -11,6 +11,8 @@
 package com.ibm.issc.domino.oooservice;
 
 import java.util.Collection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import lotus.domino.Base;
 import lotus.domino.NotesException;
@@ -19,6 +21,44 @@ import lotus.domino.NotesException;
  * @author stw
  */
 public class Utils {
+
+    final private static Logger logger = Logger.getLogger(Utils.class.getName());
+
+    /**
+     * Shorthand to fix the stupid bug that NotesError doesn't return a message
+     *
+     * @param logger
+     *            the logger to record to
+     * @param e
+     *            the exception to capture
+     */
+    public static void logError(final Logger logger, final Exception e) {
+        final Logger realLogger = (logger == null) ? Utils.logger : logger;
+        String errorMessage = (e instanceof NotesException) ? ((NotesException) e).text : e.getMessage();
+        if (errorMessage == null) {
+            errorMessage = "No error message " + e.getClass().getName();
+        }
+        realLogger.log(Level.SEVERE, errorMessage, e);
+    }
+
+    /**
+     * Shorthand to fix the stupid bug that NotesError doesn't return a message
+     * Logging warnings that
+     *
+     * @param logger
+     *            the logger to record to
+     * @param e
+     *            the exception to capture
+     */
+    public static void logWarning(final Logger logger, final Exception e) {
+        final Logger realLogger = (logger == null) ? Utils.logger : logger;
+        String errorMessage = (e instanceof NotesException) ? ((NotesException) e).text : e.getMessage();
+        if (errorMessage == null) {
+            errorMessage = "No warrning message " + e.getClass().getName();
+        }
+        realLogger.log(Level.WARNING, errorMessage, e);
+    }
+
     /**
      * Get rid of all Notes objects
      *
