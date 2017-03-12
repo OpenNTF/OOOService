@@ -78,102 +78,6 @@ public class OooService {
     }
 
     /**
-     * Core function that returns the OOO Status
-     *
-     * @param user
-     *            The user (email/notesname) to query
-     * @param force
-     *            - true: ignore cache
-     * @return JSON structure
-     */
-    private Response retrieveOOO(final String username, final boolean force) {
-
-        Database db = null;
-        Session session = null;
-        Registration registration = null;
-        Document doc = null;
-        Response response = null;
-        final ResponseBuilder rb = Response.ok();
-
-        NotesThread.sinitThread();
-        try {
-            session = NotesFactory.createSession();
-            registration = session.createRegistration();
-            // A server plugin has the server as userName in its session
-            // TODO: needs inclusion?
-            // registration.setRegistrationServer(session.getUserName());
-
-            final StringBuffer mailserver = new StringBuffer();
-            final StringBuffer mailfile = new StringBuffer();
-            final StringBuffer maildomain = new StringBuffer();
-            final StringBuffer mailsystem = new StringBuffer();
-            @SuppressWarnings("rawtypes")
-            final Vector profile = new Vector();
-            registration.getUserInfo(username, mailserver, mailfile, maildomain, mailsystem, profile);
-
-            db = session.getDatabase(mailserver.toString(), mailfile.toString());
-            // TODO: Fix error handling here!
-            if (!db.isOpen()) {
-                db.open();
-            }
-
-            final boolean OOenabled = db.getOption(Database.DBOPT_OUTOFOFFICEENABLED);
-            final OooStatus ooStatus = new OooStatus(username, OOenabled);
-
-            // Retrieve the message only if it is active
-            if (OOenabled) {
-                // TODO: Better error handling
-                doc = db.getProfileDocument("outofofficeprofile", null);
-                if (doc != null) {
-                    this.retrieveOOOParameters(doc, ooStatus);
-                }
-            }
-
-            rb.status(200);
-            rb.entity(ooStatus.toString()).type(MediaType.APPLICATION_JSON + "; charset=utf-8");
-
-            response = rb.build();
-
-        } catch (final NotesException e) {
-            Utils.logError(this.logger, e);
-            response = this.getErrorResponse(e);
-        }
-
-        Utils.shred(doc, db, registration, session);
-
-        NotesThread.stermThread();
-
-        return response;
-    }
-
-    /**
-     * @param doc
-     * @param ooStatus
-     */
-    @SuppressWarnings("rawtypes")
-    private void retrieveOOOParameters(final Document doc, final OooStatus ooStatus) {
-
-        try {
-            doc.setPreferJavaDates(true);
-            final Vector firstDayOutVector = doc.getItemValue("dateFirstDayOut");
-            if ((firstDayOutVector != null) && !firstDayOutVector.isEmpty()) {
-                final Date fdoTime = (Date) firstDayOutVector.get(0);
-                ooStatus.setFirstDayOut(fdoTime);
-            }
-            final Vector firstDayBackVector = doc.getItemValue("dateFirstDayBack");
-            if ((firstDayBackVector != null) && !firstDayBackVector.isEmpty()) {
-                final Date fdb = (Date) firstDayBackVector.get(0);
-                ooStatus.setFirstDayBack(fdb);
-            }
-            ooStatus.setSubject(doc.getItemValueString("daysoutdisplay"));
-            ooStatus.setBody(doc.getItemValueString("generalmessage"));
-
-        } catch (final Exception e) {
-            Utils.logError(this.logger, e);
-        }
-    }
-
-    /**
      * Create a full error message as JSON object into a response builder
      *
      * @param rb
@@ -181,7 +85,7 @@ public class OooService {
      * @param e
      *            the error message
      */
-    protected void errorResult(final ResponseBuilder rb, final Exception e) {
+    private void errorResult(final ResponseBuilder rb, final Exception e) {
 
         final OutputStream out = new ByteArrayOutputStream();
 
@@ -227,10 +131,131 @@ public class OooService {
      *            Exception thrown
      * @return Response with status and explanation
      */
-    protected Response getErrorResponse(final Exception e) {
+    private Response getErrorResponse(final Exception e) {
         final ResponseBuilder rb = Response.serverError();
         this.errorResult(rb, e);
         return rb.build();
     }
 
+    /**
+     * Core function that returns the OOO Status
+     *
+     * @param user
+     *            The user (email/notesname) to query
+     * @param force
+     *            - true: ignore cache
+     * @return JSON structure
+     */
+    private Response retrieveOOO(final String username, final boolean force) {
+
+        Database db = null;
+        Session session = null;
+        Registration registration = null;
+        Document doc = null;
+        Response response = null;
+        final ResponseBuilder rb = Response.ok();
+
+        // The OOO Status we return back - can have an error property
+        final OooStatus ooStatus = new OooStatus(username);
+
+        NotesThread.sinitThread();
+        try {
+            session = NotesFactory.createSession();
+            registration = session.createRegistration();
+            // A server plugin has the server as userName in its session
+            // TODO: needs inclusion?
+            // registration.setRegistrationServer(session.getUserName());
+
+            final StringBuffer mailserver = new StringBuffer();
+            final StringBuffer mailfile = new StringBuffer();
+            final StringBuffer maildomain = new StringBuffer();
+            final StringBuffer mailsystem = new StringBuffer();
+            @SuppressWarnings("rawtypes")
+            final Vector profile = new Vector();
+            registration.getUserInfo(username, mailserver, mailfile, maildomain, mailsystem, profile);
+
+            // Opening might fail depending on server trust and access control
+            // However Domino will usually return a "dead" db object anyway
+            boolean successfullDBOpen = true;
+
+            try {
+                db = session.getDatabase(mailserver.toString(), mailfile.toString());
+
+                if (!db.isOpen()) {
+                    db.open();
+                }
+            } catch (NotesException dbFail) {
+                successfullDBOpen = false;
+                ooStatus.setError(dbFail.text);
+            }
+
+            if (successfullDBOpen) {
+                final boolean OOenabled = db.getOption(Database.DBOPT_OUTOFOFFICEENABLED);
+                ooStatus.setEnabled(OOenabled);
+
+                // Retrieve the message only if it is active
+                if (OOenabled) {
+                    try {
+                        doc = db.getProfileDocument("outofofficeprofile", null);
+                        if (doc != null) {
+                            this.retrieveOOOParameters(doc, ooStatus);
+                        } else {
+                            ooStatus.setError("User didn't provide Out-of-Office information");
+                        }
+                    } catch (NotesException profileFail) {
+                        ooStatus.setError(profileFail.text);
+                    }
+                }
+            }
+
+            rb.status(200);
+            rb.entity(ooStatus.toString()).type(MediaType.APPLICATION_JSON + "; charset=utf-8");
+            response = rb.build();
+
+        } catch (final NotesException e) {
+            Utils.logError(this.logger, e);
+            response = this.getErrorResponse(e);
+        }
+
+        Utils.shred(doc, db, registration, session);
+
+        NotesThread.stermThread();
+
+        return response;
+    }
+
+    /**
+     * @param doc
+     * @param ooStatus
+     */
+    @SuppressWarnings("rawtypes")
+    private void retrieveOOOParameters(final Document doc, final OooStatus ooStatus) {
+        if (doc == null) {
+            ooStatus.setError("OOO Profile document missing");
+            return;
+        }
+        try {
+            doc.setPreferJavaDates(true);
+            final Vector firstDayOutVector = doc.getItemValue("dateFirstDayOut");
+            if ((firstDayOutVector != null) && !firstDayOutVector.isEmpty()) {
+                final Date fdoTime = (Date) firstDayOutVector.get(0);
+                ooStatus.setFirstDayOut(fdoTime);
+            }
+            final Vector firstDayBackVector = doc.getItemValue("dateFirstDayBack");
+            if ((firstDayBackVector != null) && !firstDayBackVector.isEmpty()) {
+                final Date fdb = (Date) firstDayBackVector.get(0);
+                ooStatus.setFirstDayBack(fdb);
+            }
+            ooStatus.setSubject(doc.getItemValueString("daysoutdisplay"));
+            ooStatus.setBody(doc.getItemValueString("generalmessage"));
+
+        } catch (final Exception e) {
+            Utils.logError(this.logger, e);
+            if (e instanceof NotesException) {
+                ooStatus.setError(((NotesException) e).text);
+            } else {
+                ooStatus.setError(e.getMessage());
+            }
+        }
+    }
 }
