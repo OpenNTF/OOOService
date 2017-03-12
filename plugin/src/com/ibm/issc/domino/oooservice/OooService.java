@@ -10,11 +10,11 @@
  */
 package com.ibm.issc.domino.oooservice;
 
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.Writer;
+import java.io.OutputStreamWriter;
 import java.util.Date;
 import java.util.Vector;
 import java.util.logging.Logger;
@@ -23,6 +23,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
@@ -36,6 +37,9 @@ import lotus.domino.Registration;
 import lotus.domino.Session;
 
 import org.apache.wink.common.annotations.Workspace;
+
+import com.google.common.base.Charsets;
+import com.google.gson.stream.JsonWriter;
 
 /**
  * Allows to query the OOOService of a provided
@@ -51,11 +55,21 @@ public class OooService {
 
     private final Logger logger = Activator.getLogger(this.getClass().getName());
 
+    /**
+     * Return the OOO Status for a given user. Since values are (potentially) cached
+     * allow for a reset parameter force = true
+     *
+     * @param user
+     *            a given user as eMail or Notes Name
+     * @param force
+     *            true will ignore a cached value
+     * @return JSON structure with OOO status message - or error
+     */
     @GET
-    public Response getOOOStatus(@PathParam("user") String user) {
+    public Response getOOOStatus(@PathParam("user") final String user, @QueryParam("force") final boolean force) {
         Response response = null;
         try {
-            response = this.retrieveOOO(user);
+            response = this.retrieveOOO(user, force);
         } catch (final Exception e) {
             Utils.logError(this.logger, e);
             response = this.getErrorResponse(e);
@@ -64,16 +78,21 @@ public class OooService {
     }
 
     /**
+     * Core function that returns the OOO Status
+     *
      * @param user
-     * @return
+     *            The user (email/notesname) to query
+     * @param force
+     *            - true: ignore cache
+     * @return JSON structure
      */
-    private Response retrieveOOO(final String username) {
+    private Response retrieveOOO(final String username, final boolean force) {
 
         Database db = null;
         Session session = null;
         Registration registration = null;
         Document doc = null;
-
+        Response response = null;
         final ResponseBuilder rb = Response.ok();
 
         NotesThread.sinitThread();
@@ -84,12 +103,12 @@ public class OooService {
             // TODO: needs inclusion?
             // registration.setRegistrationServer(session.getUserName());
 
-            StringBuffer mailserver = new StringBuffer();
-            StringBuffer mailfile = new StringBuffer();
-            StringBuffer maildomain = new StringBuffer();
-            StringBuffer mailsystem = new StringBuffer();
+            final StringBuffer mailserver = new StringBuffer();
+            final StringBuffer mailfile = new StringBuffer();
+            final StringBuffer maildomain = new StringBuffer();
+            final StringBuffer mailsystem = new StringBuffer();
             @SuppressWarnings("rawtypes")
-            Vector profile = new Vector();
+            final Vector profile = new Vector();
             registration.getUserInfo(username, mailserver, mailfile, maildomain, mailsystem, profile);
 
             db = session.getDatabase(mailserver.toString(), mailfile.toString());
@@ -98,8 +117,8 @@ public class OooService {
                 db.open();
             }
 
-            boolean OOenabled = db.getOption(Database.DBOPT_OUTOFOFFICEENABLED);
-            OooStatus ooStatus = new OooStatus(username, OOenabled);
+            final boolean OOenabled = db.getOption(Database.DBOPT_OUTOFOFFICEENABLED);
+            final OooStatus ooStatus = new OooStatus(username, OOenabled);
 
             // Retrieve the message only if it is active
             if (OOenabled) {
@@ -113,16 +132,18 @@ public class OooService {
             rb.status(200);
             rb.entity(ooStatus.toString()).type(MediaType.APPLICATION_JSON + "; charset=utf-8");
 
-        } catch (NotesException e) {
-            // TODO Add proper error feedback to client
+            response = rb.build();
+
+        } catch (final NotesException e) {
             Utils.logError(this.logger, e);
+            response = this.getErrorResponse(e);
         }
 
         Utils.shred(doc, db, registration, session);
 
         NotesThread.stermThread();
 
-        return rb.build();
+        return response;
     }
 
     /**
@@ -130,72 +151,69 @@ public class OooService {
      * @param ooStatus
      */
     @SuppressWarnings("rawtypes")
-    private void retrieveOOOParameters(Document doc, OooStatus ooStatus) {
+    private void retrieveOOOParameters(final Document doc, final OooStatus ooStatus) {
 
         try {
             doc.setPreferJavaDates(true);
-            Vector firstDayOutVector = doc.getItemValue("dateFirstDayOut");
+            final Vector firstDayOutVector = doc.getItemValue("dateFirstDayOut");
             if ((firstDayOutVector != null) && !firstDayOutVector.isEmpty()) {
-                Date fdoTime = (Date) firstDayOutVector.get(0);
+                final Date fdoTime = (Date) firstDayOutVector.get(0);
                 ooStatus.setFirstDayOut(fdoTime);
             }
-            Vector firstDayBackVector = doc.getItemValue("dateFirstDayBack");
+            final Vector firstDayBackVector = doc.getItemValue("dateFirstDayBack");
             if ((firstDayBackVector != null) && !firstDayBackVector.isEmpty()) {
-                Date fdb = (Date) firstDayBackVector.get(0);
+                final Date fdb = (Date) firstDayBackVector.get(0);
                 ooStatus.setFirstDayBack(fdb);
             }
             ooStatus.setSubject(doc.getItemValueString("daysoutdisplay"));
             ooStatus.setBody(doc.getItemValueString("generalmessage"));
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Utils.logError(this.logger, e);
         }
     }
 
     /**
-     * Removes new lines, carriage returns, angle brackets
+     * Create a full error message as JSON object into a response builder
      *
-     * @param message
-     *            the incoming message
-     * @return a sanitized message
-     */
-    private String sanitize(String message) {
-
-        return String.valueOf(message).replace("<", "&lt;").replace(">", "&gt;").replace("\n", "").replace("\r", "");
-
-    }
-
-    /**
      * @param rb
+     *            the response builder
      * @param e
+     *            the error message
      */
     protected void errorResult(final ResponseBuilder rb, final Exception e) {
 
         final OutputStream out = new ByteArrayOutputStream();
-        final Writer w = new PrintWriter(out);
-        final String message = (e == null) ? "No exception provided" : ((e.getMessage() == null) ? e.getClass().getName() : e
-                .getMessage());
+
+        // Getting the right error message is a little tricky
+        // the exception could be null or a NotesException that has .text instead of getMessage()
+        // or some other exception
+        final String message = (e == null) ? "No exception provided" : ((e instanceof NotesException) ? ((NotesException) e).text
+                : ((e.getMessage() == null) ? e.getClass().getName() : e.getMessage()));
 
         final int status = (e == null) ? 500 : 503;
 
         try {
-            w.write("{\"error\" : {\n");
-            w.write("\"failure\" : \"Something went wrong\",\n\"message\": \"");
-            w.write(this.sanitize(message));
-            w.write("\"\n},\n");
-            w.write("\"trace\" : [\n");
+            final JsonWriter json = new JsonWriter(new BufferedWriter(new OutputStreamWriter(out, Charsets.UTF_8)));
+            json.beginObject();
+            json.name("error");
+            json.beginObject();
+            json.name("failure").value("Something went wrong");
+            json.name("message").value(message);
+            json.endObject();
+            json.name("trace");
+            json.beginArray();
             if (e != null) {
                 for (final StackTraceElement ste : e.getStackTrace()) {
-                    w.write("\"");
-                    w.write(ste.toString());
-                    w.write("\",\n");
+                    json.value(ste.toString());
                 }
             }
-            w.write("\"EndofTrace\"\n]\n}");
-            w.close();
+            json.endArray();
+            json.endObject();
+            json.flush();
+            json.close();
         } catch (final IOException ex) {
-            // TODO: FIX Error reporting to client
-            Utils.logError(this.logger, e);
+            Utils.logError(this.logger, ex);
         }
 
         rb.status(status).type(MediaType.APPLICATION_JSON).entity(out.toString());
