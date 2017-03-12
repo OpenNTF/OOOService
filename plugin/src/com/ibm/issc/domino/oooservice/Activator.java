@@ -30,7 +30,7 @@ public class Activator extends Plugin implements BundleActivator {
      * @return the shared instance
      */
     public static Activator getDefault() {
-        return plugin;
+        return Activator.plugin;
     }
 
     /**
@@ -45,19 +45,19 @@ public class Activator extends Plugin implements BundleActivator {
     }
 
     public static StatisticCollector getStats() {
-        return stats;
+        return Activator.stats;
     }
 
     public static String getVersion() {
-        if (version == null) {
+        if (Activator.version == null) {
             try {
-                version = plugin.getBundle().getHeaders().get("Bundle-Version").toString();
-            } catch (Exception e) {
+                Activator.version = Activator.plugin.getBundle().getHeaders().get("Bundle-Version").toString();
+            } catch (final Exception e) {
                 Utils.logError(Activator.logger, e);
-                version = "0.0.0";
+                Activator.version = "0.0.0";
             }
         }
-        return version;
+        return Activator.version;
     }
 
     public Activator() {
@@ -67,14 +67,14 @@ public class Activator extends Plugin implements BundleActivator {
     @Override
     public void start(final BundleContext context) throws Exception {
         super.start(context);
-        plugin = this;
+        Activator.plugin = this;
         // Start Statistics Collector
-        stats.startOOOStats();
+        Activator.stats.startOOOStats();
     }
 
     @Override
     public void stop(final BundleContext context) throws Exception {
-        plugin = null;
+        Activator.plugin = null;
         Activator.stats.stopOOOStats();
         super.stop(context);
     }

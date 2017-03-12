@@ -51,7 +51,7 @@ public class StatisticCollector extends JavaServerAddin {
         try {
             final Long calls = this.classCalls.containsKey(className) ? (this.classCalls.get(className) + 1L) : 1L;
             this.classCalls.put(className, calls);
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             // If we get here we need to reset our long
             this.classCalls.put(className, 0L);
         }
@@ -80,14 +80,14 @@ public class StatisticCollector extends JavaServerAddin {
                         monitors = rootMon.getMonitors();
                         if (monitors != null) {
                             // Dump the stats
-                            for (Monitor mon : monitors) {
+                            for (final Monitor mon : monitors) {
                                 this.statUpdateMonitor(mon);
                             }
                         }
                     }
 
                     // Dump the renderCalls
-                    for (Map.Entry<String, Long> entry : StatisticCollector.this.classCalls.entrySet()) {
+                    for (final Map.Entry<String, Long> entry : StatisticCollector.this.classCalls.entrySet()) {
                         this.serverStatUpdate(StatisticCollector.STATS_PREFIX, entry.getKey(), entry.getValue());
                     }
 
@@ -104,7 +104,7 @@ public class StatisticCollector extends JavaServerAddin {
      * Console output on startup
      */
     public void startOOOStats() {
-        String version = Activator.getVersion();
+        final String version = Activator.getVersion();
         this.AddInLogMessageText("IBM Domino OOO Query Service " + version + " starting...");
         this.start();
         this.AddInLogMessageText("IBM Domino OOO Query Service " + version + " at your service!");
@@ -129,16 +129,16 @@ public class StatisticCollector extends JavaServerAddin {
      * @param type
      *            of stat
      */
-    private String buildStatLabel(Monitor mon, String type) {
-        StringBuilder sb = new StringBuilder();
+    private String buildStatLabel(final Monitor mon, final String type) {
+        final StringBuilder sb = new StringBuilder();
         sb.append(mon.getLabel().replaceAll("#", "."));
         sb.append(".");
         sb.append(type);
         return sb.toString();
     }
 
-    private synchronized void serverStatUpdate(String Package, String Statistic, double value) {
-        this.StatUpdate(Package, Statistic, ST_UNIQUE, VT_NUMBER, new Double(value));
+    private synchronized void serverStatUpdate(final String Package, final String Statistic, final double value) {
+        this.StatUpdate(Package, Statistic, JavaServerAddin.ST_UNIQUE, JavaServerAddin.VT_NUMBER, new Double(value));
     }
 
     /**
@@ -146,7 +146,7 @@ public class StatisticCollector extends JavaServerAddin {
      *
      * @param jamon
      */
-    private void statUpdateMonitor(Monitor mon) {
+    private void statUpdateMonitor(final Monitor mon) {
         this.serverStatUpdate(StatisticCollector.STATS_PREFIX, this.buildStatLabel(mon, "Avg"), mon.getAvg());
         this.serverStatUpdate(StatisticCollector.STATS_PREFIX, this.buildStatLabel(mon, "Min"), mon.getMin());
         this.serverStatUpdate(StatisticCollector.STATS_PREFIX, this.buildStatLabel(mon, "Max"), mon.getMax());

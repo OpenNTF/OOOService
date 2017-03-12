@@ -28,7 +28,7 @@ import com.jamonapi.MonitorFactory;
 
 /**
  * Returns statistics about calls to the OOOService
- * 
+ *
  * @author stw
  */
 @Workspace(workspaceTitle = "OOO Query", collectionTitle = "Shows statistics of ooo useage")
