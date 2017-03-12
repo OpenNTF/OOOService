@@ -157,6 +157,8 @@ public class OooService {
         final Monitor mon = MonitorFactory.start("OooService#retrieveOOO");
         Monitor monRegistration = null;
         Monitor monDBOpen = null;
+        boolean isMonRegistration = false;
+        boolean isMonDBOpen = false;
         Database db = null;
         Session session = null;
         Registration registration = null;
@@ -183,13 +185,16 @@ public class OooService {
             @SuppressWarnings("rawtypes")
             final Vector profile = new Vector();
             monRegistration = MonitorFactory.start("OooService#retrieveOOO#retrieveRegistration");
+            isMonRegistration = true;
             registration.getUserInfo(username, mailserver, mailfile, maildomain, mailsystem, profile);
             monRegistration.stop();
+            isMonRegistration = false;
 
             // Opening might fail depending on server trust and access control
             // However Domino will usually return a "dead" db object anyway
             boolean successfullDBOpen = true;
             monDBOpen = MonitorFactory.start("OooService#retrieveOOO#OpenDB");
+            isMonDBOpen = true; // To avoid duplicate hit count on stop
             try {
                 db = session.getDatabase(mailserver.toString(), mailfile.toString());
 
@@ -201,6 +206,8 @@ public class OooService {
                 ooStatus.setError(dbFail.text);
             }
             monDBOpen.stop();
+            isMonDBOpen = false;
+
             if (successfullDBOpen) {
                 final boolean OOenabled = db.getOption(Database.DBOPT_OUTOFOFFICEENABLED);
                 ooStatus.setEnabled(OOenabled);
@@ -233,10 +240,10 @@ public class OooService {
 
         // Ensure all monitors are down
         NotesThread.stermThread();
-        if (monDBOpen != null) {
+        if ((monDBOpen != null) && isMonDBOpen) {
             monDBOpen.stop();
         }
-        if (monRegistration != null) {
+        if ((monRegistration != null) && isMonRegistration) {
             monRegistration.stop();
         }
         mon.stop();
