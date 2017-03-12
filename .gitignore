@@ -1,0 +1,3 @@
+# We don't need the binary output
+bin/
+.DS_File
