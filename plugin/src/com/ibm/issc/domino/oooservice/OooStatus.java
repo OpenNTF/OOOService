@@ -10,14 +10,22 @@
  */
 package com.ibm.issc.domino.oooservice;
 
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import com.google.common.base.Charsets;
+import com.google.gson.stream.JsonWriter;
 
 /**
  * @author stw
  */
 public class OooStatus {
-    // JSON compatible date format
+
+    // JSON/JavaScript compatible date format
     private final SimpleDateFormat sdf          = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     private final String           user;
     private final boolean          enabled;
@@ -35,7 +43,7 @@ public class OooStatus {
      * @param body
      *            the body to set
      */
-    public void setBody(String body) {
+    public void setBody(final String body) {
         this.body = body;
     }
 
@@ -43,7 +51,7 @@ public class OooStatus {
      * @param firstDayBack
      *            the firstDayBack to set
      */
-    public void setFirstDayBack(Date firstDateBack) {
+    public void setFirstDayBack(final Date firstDateBack) {
         if (firstDateBack == null) {
             this.firstDayBack = null;
         } else {
@@ -55,7 +63,7 @@ public class OooStatus {
      * @param firstDayOut
      *            the firstDayOut to set
      */
-    public void setFirstDayOut(Date firstDate) {
+    public void setFirstDayOut(final Date firstDate) {
         if (firstDate == null) {
             this.firstDayOut = null;
         } else {
@@ -67,46 +75,34 @@ public class OooStatus {
      * @param subject
      *            the subject to set
      */
-    public void setSubject(String subject) {
+    public void setSubject(final String subject) {
         this.subject = subject;
     }
 
     @Override
     public String toString() {
-        StringBuilder b = new StringBuilder();
-        b.append("{");
-        b.append("\"user\":\"");
-        b.append(this.user);
-        b.append("\", ");
-        b.append("\"enabled\": ");
-        b.append(String.valueOf(this.enabled));
-        if (this.enabled) {
-            this.append(b, "out", this.firstDayOut);
-            this.append(b, "in", this.firstDayBack);
-            this.append(b, "subject", this.subject);
-            this.append(b, "body", this.body);
-        }
-        b.append("}");
-        return b.toString();
-    }
 
-    /**
-     * @param b
-     *            StringBuilder
-     * @param label
-     *            the Label to use
-     * @param value
-     *            the Value it has
-     */
-    private void append(final StringBuilder b, final String label, final String value) {
-        // TODO: needs a JSON save way of rendering this!!
-        if (value != null) {
-            b.append(", ");
-            b.append("\"");
-            b.append(label);
-            b.append("\": \"");
-            b.append(value);
-            b.append("\"");
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            final JsonWriter json = new JsonWriter(new BufferedWriter(new OutputStreamWriter(out, Charsets.UTF_8)));
+
+            json.setHtmlSafe(true);
+            json.beginObject();
+            json.name("user").value(this.user);
+            json.name("enabled").value(this.enabled);
+            if (this.enabled) {
+                json.name("out").value(this.firstDayOut);
+                json.name("in").value(this.firstDayBack);
+                json.name("subject").value(this.subject);
+                json.name("body").value(this.body);
+            }
+            json.endObject();
+            json.flush();
+            json.close();
+        } catch (final IOException e) {
+            Utils.logError(null, e);
         }
+
+        return out.toString();
     }
 }
