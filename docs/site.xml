@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-   <feature url="features/com.ibm.issc.domino.OOOServiceFeature_1.0.0.201703121433.jar" id="com.ibm.issc.domino.OOOServiceFeature" version="1.0.0.201703121433">
+   <feature url="features/com.ibm.issc.domino.OOOServiceFeature_1.0.0.201703131059.jar" id="com.ibm.issc.domino.OOOServiceFeature" version="1.0.0.201703131059">
       <category name="Domino"/>
    </feature>
    <category-def name="Domino" label="Domino Out-Of-Office"/>

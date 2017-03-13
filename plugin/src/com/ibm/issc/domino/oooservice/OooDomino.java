@@ -10,11 +10,11 @@
  */
 package com.ibm.issc.domino.oooservice;
 
-import java.util.Date;
 import java.util.Vector;
 import java.util.logging.Logger;
 
 import lotus.domino.Database;
+import lotus.domino.DateTime;
 import lotus.domino.Document;
 import lotus.domino.NotesException;
 import lotus.domino.Registration;
@@ -31,7 +31,8 @@ import com.jamonapi.MonitorFactory;
  */
 public class OooDomino {
 
-    private final Logger logger = Activator.getLogger(this.getClass().getName());
+    private static final String OOSTATUSFIELD = "TaskState";
+    private final Logger        logger        = Activator.getLogger(this.getClass().getName());
 
     public OooStatus retrieveOOO(final Session session, final String username) {
         final Monitor mon = MonitorFactory.start("OooDomino#retrieveOOO");
@@ -80,22 +81,28 @@ public class OooDomino {
             isMonDBOpen = false;
 
             if (successfullDBOpen) {
-                final boolean OOenabled = db.getOption(Database.DBOPT_OUTOFOFFICEENABLED);
-                ooStatus.setEnabled(OOenabled);
+                // TODO: db.getOption(Database.DBOPT_OUTOFOFFICEENABLED) seems to always return
+                // false for Service OOO. So we user "TaskState" field instead
+                final boolean OOoption = db.getOption(Database.DBOPT_OUTOFOFFICEENABLED);
+                ooStatus.setOODBOption(OOoption);
+                try {
+                    doc = db.getProfileDocument("outofofficeprofile", null);
 
-                // Retrieve the message only if it is active
-                if (OOenabled) {
-                    try {
-                        doc = db.getProfileDocument("outofofficeprofile", null);
-                        if (doc != null) {
-                            this.retrieveOOOParameters(doc, ooStatus);
-                        } else {
-                            ooStatus.setError("User didn't provide Out-of-Office information");
-                        }
-                    } catch (final NotesException profileFail) {
-                        ooStatus.setError(profileFail.text);
+                    if (doc != null) {
+                        final boolean OOenabled = String.valueOf(doc.getItemValueString(OOSTATUSFIELD)).equals("1");
+                        ooStatus.setEnabled(OOenabled);
+                        // Retrieve the message only if it is active
+                        // if (OOenabled) {
+                        this.retrieveOOOParameters(doc, ooStatus);
+                        // }
+                    } else {
+                        ooStatus.setError("User didn't provide Out-of-Office information");
                     }
+
+                } catch (final NotesException profileFail) {
+                    ooStatus.setError(profileFail.text);
                 }
+
             }
 
         } catch (final NotesException e) {
@@ -129,19 +136,25 @@ public class OooDomino {
         }
         final Monitor mon = MonitorFactory.start("OooService#retrieveOOOParameters");
         try {
-            doc.setPreferJavaDates(true);
+            if (!doc.hasItem(OOSTATUSFIELD)) {
+                ooStatus.setError("No OOO Status in profile");
+                ooStatus.setEnabled(false);
+            }
             final Vector firstDayOutVector = doc.getItemValue("dateFirstDayOut");
             if ((firstDayOutVector != null) && !firstDayOutVector.isEmpty()) {
-                final Date fdoTime = (Date) firstDayOutVector.get(0);
-                ooStatus.setFirstDayOut(fdoTime);
+                final DateTime fdoTime = (DateTime) firstDayOutVector.get(0);
+                ooStatus.setFirstDayOut(fdoTime.toJavaDate());
+                Utils.shred(fdoTime);
             }
             final Vector firstDayBackVector = doc.getItemValue("dateFirstDayBack");
             if ((firstDayBackVector != null) && !firstDayBackVector.isEmpty()) {
-                final Date fdb = (Date) firstDayBackVector.get(0);
-                ooStatus.setFirstDayBack(fdb);
+                final DateTime fdb = (DateTime) firstDayBackVector.get(0);
+                ooStatus.setFirstDayBack(fdb.toJavaDate());
+                Utils.shred(fdb);
             }
             ooStatus.setSubject(doc.getItemValueString("daysoutdisplay"));
             ooStatus.setBody(doc.getItemValueString("generalmessage"));
+            ooStatus.setTaskState(doc.getItemValueString(OOSTATUSFIELD));
 
         } catch (final Exception e) {
             Utils.logError(this.logger, e);

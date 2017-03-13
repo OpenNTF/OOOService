@@ -28,12 +28,16 @@ public class OooStatus {
     // JSON/JavaScript compatible date format
     private final SimpleDateFormat sdf          = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     private final String           user;
+    // Based on Task status
     private boolean                enabled      = false;
+    // Based on db.getOption(Database.DBOPT_OUTOFOFFICEENABLED)
+    private boolean                ooDbOption   = false;
     private String                 firstDayOut  = null;
     private String                 firstDayBack = null;
     private String                 subject      = null;
     private String                 body         = null;
     private String                 error        = null;
+    private String                 taskState    = null;
 
     public OooStatus(final String user) {
         this.user = user;
@@ -88,11 +92,27 @@ public class OooStatus {
     }
 
     /**
+     * @param oOoption
+     */
+    public void setOODBOption(boolean oOoption) {
+        this.ooDbOption = oOoption;
+
+    }
+
+    /**
      * @param subject
      *            the subject to set
      */
     public void setSubject(final String subject) {
         this.subject = subject;
+    }
+
+    /**
+     * @param taskState
+     *            the taskState to set
+     */
+    public void setTaskState(String taskState) {
+        this.taskState = taskState;
     }
 
     @Override
@@ -112,9 +132,11 @@ public class OooStatus {
             if (this.enabled) {
                 json.name("out").value(this.firstDayOut);
                 json.name("in").value(this.firstDayBack);
-                json.name("subject").value(this.subject);
-                json.name("body").value(this.body);
+                json.name("subject").value(this.nullNA(this.subject));
+                json.name("body").value(this.nullNA(this.body));
             }
+            json.name("taskstate").value(this.taskState);
+            json.name("ooDBStatus").value(this.ooDbOption);
             json.endObject();
             json.flush();
             json.close();
@@ -123,5 +145,9 @@ public class OooStatus {
         }
 
         return out.toString();
+    }
+
+    private String nullNA(final String input) {
+        return (input == null ? "n/a" : input);
     }
 }
