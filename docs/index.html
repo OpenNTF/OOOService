@@ -1,0 +1,111 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+	content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="description" content="Domino OOO Lookup service">
+<meta name="author" content="St. Wissel">
+
+
+<title>Domino OOO Lookup service</title>
+
+<!-- Bootstrap core CSS -->
+
+<link rel="stylesheet"
+	href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css"
+	integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ"
+	crossorigin="anonymous">
+
+<!-- Custom styles for this template -->
+<link href="narrow-jumbotron.css" rel="stylesheet">
+</head>
+
+<body>
+
+	<div class="container">
+		<div class="header clearfix">
+			<nav>
+				<ul class="nav nav-pills float-right">
+					<li class="nav-item"><a class="nav-link active" href="#">Home
+							<span class="sr-only">(current)</span>
+					</a></li>
+					<li class="nav-item"><a class="nav-link" href="https://github.ibm.com/st-wissel/OOOService">Project</a></li>
+					<li class="nav-item"><a class="nav-link" href="mailto:stephan@wissel.net">Contact</a>
+					</li>
+				</ul>
+			</nav>
+			<h3 class="text-muted">Domino OOO</h3>
+		</div>
+
+		<div class="jumbotron">
+			<h1 class="display-3">Domino Out Of Office Service</h1>
+			<p class="lead">This is the location of the Eclipse update site for the Domino out-of-office Rest service</p>
+			<p>
+				<a class="btn btn-lg btn-success" href="site.xml" role="button">Open the update site</a>
+			</p>
+		</div>
+
+		<div class="row marketing">
+			<div class="col-lg-6">
+				<h4>Installation Option 1</h4>
+				<p>Copy the plugins from this site (see <a href="site.xml">the XML description</a> for the latest)
+				to <code>[DominoAppDir]/osgi/shared/eclipse/plugins</code> </p>
+
+				<h4>Installation Option 2</h4>
+				<p>Import this update site to an updateside.nsf and use that in Domino</p>
+				
+				<h4>Sample JSON</h4>
+				<p>
+				<pre>
+{
+"user": "jane.doe@projectcastle.io",
+"enabled": true,
+"out": "2017-03-09T10:00:00.000-0600",
+"in": "2017-03-15T11:00:00.000-0500",
+"subject": "I am out of the office from Fri 03/10/2017 until Thu 03/16/2017.",
+"body": "I'm gone fishing!",
+"lastUpdate": "2017-03-13T02:22:44.413-0500"
+}				
+				</pre>
+				</p>
+
+			</div>
+
+			<div class="col-lg-6">
+				<h4>Use</h4>
+				<p>Call the URL <code>https://your.dominoserver.com/oooservice/q/some.email@yourorg.com</code> to retrieve the user's status</p>
+
+				<h4>Parameters</h4>
+				<p><ul><li><code>debug=true</code> to get additional JSON output</li>
+					<li><code>force=true</code> to bypass the 30 min cache</li>
+					</ul>
+				</p>
+
+				<h4>Statistics</h4>
+				<p>The Domino console will provide <code>show stat OOO</code> (that's the letter O, not number 0) for performance statistics.
+				Alternative the URL <code>https://your.dominoserver.com/oooservice/stats</code> provides the same info</p>
+			</div>
+		</div>
+
+		<footer class="footer">
+			<p>&copy; IBM 2017 All rights reserved</p>
+		</footer>
+
+	</div>
+	<!-- /container -->
+	<script src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
+		integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n"
+		crossorigin="anonymous"></script>
+	<script
+		src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"
+		integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
+		crossorigin="anonymous"></script>
+	<script
+		src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"
+		integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn"
+		crossorigin="anonymous"></script>
+
+</body>
+</html>
