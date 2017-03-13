@@ -30,6 +30,7 @@ public class OooStatus {
     private final String           user;
     // Based on Task status
     private boolean                enabled      = false;
+    private Date                   lastUpdate   = new Date();
     // Based on db.getOption(Database.DBOPT_OUTOFOFFICEENABLED)
     private boolean                ooDbOption   = false;
     private String                 firstDayOut  = null;
@@ -115,9 +116,7 @@ public class OooStatus {
         this.taskState = taskState;
     }
 
-    @Override
-    public String toString() {
-
+    public String toJSON(final boolean debug) {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             final JsonWriter json = new JsonWriter(new BufferedWriter(new OutputStreamWriter(out, Charsets.UTF_8)));
@@ -135,8 +134,11 @@ public class OooStatus {
                 json.name("subject").value(this.nullNA(this.subject));
                 json.name("body").value(this.nullNA(this.body));
             }
-            json.name("taskstate").value(this.taskState);
-            json.name("ooDBStatus").value(this.ooDbOption);
+            json.name("lastUpdate").value(this.sdf.format(this.lastUpdate));
+            if (debug) {
+                json.name("taskstate").value(this.taskState);
+                json.name("ooDBStatus").value(this.ooDbOption);
+            }
             json.endObject();
             json.flush();
             json.close();
@@ -145,6 +147,11 @@ public class OooStatus {
         }
 
         return out.toString();
+    }
+
+    @Override
+    public String toString() {
+        return this.toJSON(false);
     }
 
     private String nullNA(final String input) {

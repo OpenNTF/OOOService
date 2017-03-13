@@ -63,11 +63,12 @@ public class OooService {
      * @return JSON structure with OOO status message - or error
      */
     @GET
-    public Response getOOOStatus(@PathParam("user") final String user, @QueryParam("force") final boolean force) {
+    public Response getOOOStatus(@PathParam("user") final String user, @QueryParam("force") final boolean force,
+            @QueryParam("debug") final boolean debug) {
         Response response = null;
         final Monitor mon = MonitorFactory.start("OooService#getOOOStatus");
         try {
-            response = this.retrieveOOO(user, force);
+            response = this.retrieveOOO(user, force, debug);
         } catch (final Exception e) {
             Utils.logError(this.logger, e);
             response = this.getErrorResponse(e);
@@ -128,7 +129,7 @@ public class OooService {
      * @param force
      * @return
      */
-    private Response getCachedResponse(String username, boolean force) {
+    private Response getCachedResponse(String username, boolean force, final boolean debug) {
         // TODO There's no caching for now, hence nothing can be returned
         return null;
     }
@@ -158,11 +159,11 @@ public class OooService {
      *            - true: ignore cache
      * @return JSON structure
      */
-    private Response retrieveOOO(final String username, final boolean force) {
+    private Response retrieveOOO(final String username, final boolean force, final boolean debug) {
         final Monitor mon = MonitorFactory.start("OooService#retrieveOOO");
 
         // First check if the cache has the result, then call Domino
-        Response cachedResponse = this.getCachedResponse(username, force);
+        Response cachedResponse = this.getCachedResponse(username, force, debug);
         if (cachedResponse != null) {
             return cachedResponse;
         }
@@ -179,9 +180,9 @@ public class OooService {
         NotesThread.sinitThread();
         try {
             session = NotesFactory.createSession();
-            ooStatus = ooDomino.retrieveOOO(session, username);
+            ooStatus = ooDomino.retrieveOOO(session, username, debug);
             rb.status(200);
-            rb.entity(String.valueOf(ooStatus)).type(MediaType.APPLICATION_JSON + "; charset=utf-8");
+            rb.entity((ooStatus == null) ? "null" : ooStatus.toJSON(debug)).type(MediaType.APPLICATION_JSON + "; charset=utf-8");
             response = rb.build();
 
         } catch (final NotesException e) {

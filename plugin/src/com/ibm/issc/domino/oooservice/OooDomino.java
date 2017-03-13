@@ -34,7 +34,7 @@ public class OooDomino {
     private static final String OOSTATUSFIELD = "TaskState";
     private final Logger        logger        = Activator.getLogger(this.getClass().getName());
 
-    public OooStatus retrieveOOO(final Session session, final String username) {
+    public OooStatus retrieveOOO(final Session session, final String username, final boolean debug) {
         final Monitor mon = MonitorFactory.start("OooDomino#retrieveOOO");
         Monitor monRegistration = null;
         Monitor monDBOpen = null;
@@ -81,28 +81,28 @@ public class OooDomino {
             isMonDBOpen = false;
 
             if (successfullDBOpen) {
-                // TODO: db.getOption(Database.DBOPT_OUTOFOFFICEENABLED) seems to always return
-                // false for Service OOO. So we user "TaskState" field instead
+
                 final boolean OOoption = db.getOption(Database.DBOPT_OUTOFOFFICEENABLED);
                 ooStatus.setOODBOption(OOoption);
-                try {
-                    doc = db.getProfileDocument("outofofficeprofile", null);
+                if (OOoption || debug) {
+                    try {
+                        doc = db.getProfileDocument("outofofficeprofile", null);
 
-                    if (doc != null) {
-                        final boolean OOenabled = String.valueOf(doc.getItemValueString(OOSTATUSFIELD)).equals("1");
-                        ooStatus.setEnabled(OOenabled);
-                        // Retrieve the message only if it is active
-                        // if (OOenabled) {
-                        this.retrieveOOOParameters(doc, ooStatus);
-                        // }
-                    } else {
-                        ooStatus.setError("User didn't provide Out-of-Office information");
+                        if (doc != null) {
+                            final boolean OOenabled = String.valueOf(doc.getItemValueString(OOSTATUSFIELD)).equals("1");
+                            ooStatus.setEnabled(OOenabled);
+                            // Retrieve the message only if it is active
+                            // if (OOenabled) {
+                            this.retrieveOOOParameters(doc, ooStatus);
+                            // }
+                        } else {
+                            ooStatus.setError("User didn't provide Out-of-Office information");
+                        }
+
+                    } catch (final NotesException profileFail) {
+                        ooStatus.setError(profileFail.text);
                     }
-
-                } catch (final NotesException profileFail) {
-                    ooStatus.setError(profileFail.text);
                 }
-
             }
 
         } catch (final NotesException e) {
