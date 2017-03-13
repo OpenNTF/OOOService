@@ -27,9 +27,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
 import lotus.domino.NotesException;
-import lotus.domino.NotesFactory;
-import lotus.domino.NotesThread;
-import lotus.domino.Session;
 
 import org.apache.wink.common.annotations.Workspace;
 
@@ -125,16 +122,6 @@ public class OooService {
     }
 
     /**
-     * @param username
-     * @param force
-     * @return
-     */
-    private Response getCachedResponse(String username, boolean force, final boolean debug) {
-        // TODO There's no caching for now, hence nothing can be returned
-        return null;
-    }
-
-    /**
      * Provides an Error response back to the browser
      *
      * @param e
@@ -162,40 +149,16 @@ public class OooService {
     private Response retrieveOOO(final String username, final boolean force, final boolean debug) {
         final Monitor mon = MonitorFactory.start("OooService#retrieveOOO");
 
-        // First check if the cache has the result, then call Domino
-        Response cachedResponse = this.getCachedResponse(username, force, debug);
-        if (cachedResponse != null) {
-            return cachedResponse;
-        }
-
-        Session session = null;
-        Response response = null;
+        OooStatus ooStatus = OooCache.INSTANCE.get(username, force, debug);
 
         final ResponseBuilder rb = Response.ok();
+        rb.status(200);
+        rb.entity(ooStatus.toJSON(debug)).type(MediaType.APPLICATION_JSON + "; charset=utf-8");
 
-        // The OOO Status we return back - can have an error property
-        OooStatus ooStatus = null;
-        final OooDomino ooDomino = new OooDomino();
-
-        NotesThread.sinitThread();
-        try {
-            session = NotesFactory.createSession();
-            ooStatus = ooDomino.retrieveOOO(session, username, debug);
-            rb.status(200);
-            rb.entity((ooStatus == null) ? "null" : ooStatus.toJSON(debug)).type(MediaType.APPLICATION_JSON + "; charset=utf-8");
-            response = rb.build();
-
-        } catch (final NotesException e) {
-            Utils.logError(this.logger, e);
-            response = this.getErrorResponse(e);
-        }
-
-        Utils.shred(session);
-
-        // Ensure all monitors are down
-        NotesThread.stermThread();
+        Response response = rb.build();
 
         mon.stop();
+
         return response;
     }
 
