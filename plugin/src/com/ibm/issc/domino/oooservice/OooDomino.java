@@ -167,6 +167,7 @@ public class OooDomino {
             ooStatus.setSubject(doc.getItemValueString("daysoutdisplay"));
             ooStatus.setBody(doc.getItemValueString("generalmessage"));
             ooStatus.setTaskState(doc.getItemValueString(OOSTATUSFIELD));
+            ooStatus.setAvailableForMeetings(!String.valueOf(doc.getItemValueString("BookBusyTime")).equals("1"));
 
         } catch (final Exception e) {
             Utils.logError(this.logger, e);

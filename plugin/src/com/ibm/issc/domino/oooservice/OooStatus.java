@@ -45,6 +45,7 @@ public class OooStatus {
     private Date                   lastUpdate   = new Date();
     // Based on db.getOption(Database.DBOPT_OUTOFOFFICEENABLED)
     private boolean                ooDbOption   = false;
+    private boolean                availableForMeetings = false;
     private String                 firstDayOut  = null;
     private String                 firstDayBack = null;
     private String                 subject      = null;
@@ -54,6 +55,14 @@ public class OooStatus {
 
     public OooStatus(final String user) {
         this.user = user;
+    }
+
+    /**
+     * @param availableForMeetings
+     *            has user booked busy time
+     */
+    public void setAvailableForMeetings(final boolean availableForMeetings) {
+        this.availableForMeetings = availableForMeetings;
     }
 
     /**
@@ -145,6 +154,7 @@ public class OooStatus {
                 json.name("in").value(this.firstDayBack);
                 json.name("subject").value(this.nullNA(this.subject));
                 json.name("body").value(this.nullNA(this.body));
+                json.name("availableformeetings").value(availableForMeetings);
             }
             json.name("lastUpdate").value(this.sdf.format(this.lastUpdate));
             if (debug) {
